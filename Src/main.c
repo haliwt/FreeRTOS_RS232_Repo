@@ -8,9 +8,16 @@
 #include "key/bsp_key.h"
 //#include "GeneralTIM/bsp_GeneralTIM.h"
 #include "StepMotor/bsp_StepMotor.h"
-/* 私有类型定义 --------------------------------------------------------------*/
+#include "dma_usart3/bsp_usart3.h"
+
 /* 私有宏定义 ----------------------------------------------------------------*/
+#define SENDBUFF_SIZE              100  // 串口DMA发送缓冲区大小
+
 /* 私有变量 ------------------------------------------------------------------*/
+uint8_t DMAaRxBuffer[8];                      // 接收数据 
+uint8_t DMAaTxBuffer[SENDBUFF_SIZE];       // 串口DMA发送缓冲区
+
+
 static TaskHandle_t xHandleTaskUserIF = NULL;
 static TaskHandle_t xHandleTaskLED1 = NULL;
 static TaskHandle_t xHandleTaskLED2 = NULL;
@@ -105,7 +112,9 @@ int main(void)
   SystemClock_Config();
   
   MX_DEBUG_USART_Init();
+	
 
+	MX_USART3_Init();
   /* 初始化LED */
   LED_GPIO_Init();
   /* 板子按键初始化 */
@@ -146,8 +155,13 @@ static void vTaskTaskUserIF(void *pvParameters)
     {
      
    
-       HAL_UART_Receive(&husart_debug,aRxBuffer,8,0xffff);
-	   printf("aRxBuffer[0]=%#x \n",aRxBuffer[0]);
+      // HAL_UART_Receive(&husart_debug,aRxBuffer,8,0xffff);
+	
+			HAL_UART_Receive(&husart_usart3,DMAaRxBuffer,8,0xffff);
+			//HAL_UART_Receive_DMA(&husartx,DMAaRxBuffer,8);
+	    printf("DMAaRxBuffer[0]=%#x \n",DMAaRxBuffer[0]);
+			printf("DMAaRxBuffer[1]=%#x \n",DMAaRxBuffer[1]);
+			printf("DMA USART3 serial \n");
       if(KEY1_StateRead()==KEY_DOWN)//if(Key_AccessTimes(&key1,KEY_ACCESS_READ)!=0)//按键被按下过
       {
         printf("=================================================\r\n");
@@ -163,24 +177,24 @@ static void vTaskTaskUserIF(void *pvParameters)
       
      //if(aRxBuffer[0]==0xa6)////if(Key_AccessTimes(&key2,KEY_ACCESS_READ)!=0)//按键被按下过
       {         
-        printf("KEY2按下，启动单次定时器中断，50ms后在定时器中断给任务vTaskMsgPro发送消息\r\n");
+       // printf("KEY2按下，启动单次定时器中断，50ms后在定时器中断给任务vTaskMsgPro发送消息\r\n");
 		  
-	   MSG_T   *ptMsg;
+	     MSG_T   *ptMsg;
        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
       
       /* 初始化结构体指针 */
       ptMsg = &g_tMsg;
       
       /* 初始化数组 */
-      ptMsg->ucMessageID=aRxBuffer[1];
-      ptMsg->ulData[0]=aRxBuffer[0];
-	  ptMsg->ulData[1]=aRxBuffer[1];
-	  ptMsg->ulData[2]=aRxBuffer[2];
-	  ptMsg->ulData[3]=aRxBuffer[3];
-	  ptMsg->ulData[4]=aRxBuffer[4];
-	  ptMsg->ulData[5]=aRxBuffer[5];
-	  ptMsg->ulData[6]=aRxBuffer[6];
-	  ptMsg->ulData[7]=aRxBuffer[7];
+      ptMsg->ucMessageID=DMAaRxBuffer[1];
+      ptMsg->ulData[0]=DMAaRxBuffer[0];
+	  ptMsg->ulData[1]=DMAaRxBuffer[1];
+	  ptMsg->ulData[2]=DMAaRxBuffer[2];
+	  ptMsg->ulData[3]=DMAaRxBuffer[3];
+	  ptMsg->ulData[4]=DMAaRxBuffer[4];
+	  ptMsg->ulData[5]=DMAaRxBuffer[5];
+	  ptMsg->ulData[6]=DMAaRxBuffer[6];
+	  ptMsg->ulData[7]=DMAaRxBuffer[7];
       ptMsg->usData[0]=aRxBuffer[3];;
 		 /* 向消息队列发数据 */
        xQueueSendFromISR(xQueue2,
@@ -190,15 +204,15 @@ static void vTaskTaskUserIF(void *pvParameters)
         //if(KEY1_StateRead()==KEY_DOWN)//Key_AccessTimes(&key2,KEY_ACCESS_WRITE_CLEAR);
 		  }
       
-      if(aRxBuffer[0]==0xa1)//if(Key_AccessTimes(&key3,KEY_ACCESS_READ)!=0)//按键被按下过
+      if(DMAaRxBuffer[0]==0xa1)//if(Key_AccessTimes(&key3,KEY_ACCESS_READ)!=0)//按键被按下过
       {         
         printf("KEY3按下，启动单次定时器中断，50ms后在定时器中断给任务vTaskMsgPro发送消息\r\n");
 		    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
          
-       if(aRxBuffer[1]==0x01)
+       if(DMAaRxBuffer[1]==0x01)
 		  {
-			   g_uiCount=aRxBuffer[2];
-			   printf("aRxBuffer[2]= %#x\n",aRxBuffer[2]);
+			   g_uiCount=DMAaRxBuffer[2];
+			   printf("aRxBuffer[2]= %#x\n",DMAaRxBuffer[2]);
 			  /* 向消息队列发数据 */
 			  xQueueSendFromISR(xQueue1,
 					  (void *)&g_uiCount,
@@ -210,10 +224,10 @@ static void vTaskTaskUserIF(void *pvParameters)
 			//HAL_TIM_OC_Start_IT(&htim2,TIM_CHANNEL_2);
 			 //Key_AccessTimes(&key3,KEY_ACCESS_WRITE_CLEAR);
 		 }
-		 if(aRxBuffer[2]==0x02)
+		 if(DMAaRxBuffer[2]==0x02)
 		 {
 		       
-			   printf("aRxBuffer[3]= %#x\n",aRxBuffer[3]);
+			   printf("aRxBuffer[3]= %#x\n",DMAaRxBuffer[3]);
 			   g_uiCount=aRxBuffer[3];
 			   printf("g_uiCount= %#x\n",g_uiCount);
 			 /* 向消息队列发数据 */
@@ -228,7 +242,7 @@ static void vTaskTaskUserIF(void *pvParameters)
 		 
 		 }
 		  }
-        taskYIELD();
+        //taskYIELD();
      vTaskDelay(100);
   }
 		
@@ -260,15 +274,12 @@ static void vTaskLED1(void *pvParameters)
     if(xResult == pdPASS)
     {
       /* 成功接收，并通过串口将数据打印出来 */
-		if(ptMsg -> ulData[1] ==0x01)
-		{
-		  
-      Linear_Interpolation(6400,6400,500);
+	
 		  //HAL_Delay(500);
-		}
+		
 			
-     printf("接收到消息队列数据ptMsg->ucMessageID = %#x\r\n", ptMsg->ucMessageID);
-     printf("接收到消息队列数据ptMsg->ulData[0] = %#x\r\n", ptMsg->ulData[0]);
+    printf("接收到消息队列数据ptMsg->ucMessageID = %#x\r\n", ptMsg->ucMessageID);
+    printf("接收到消息队列数据ptMsg->ulData[0] = %#x\r\n", ptMsg->ulData[0]);
 	  printf("接收到消息队列数据ptMsg->ulData[1] = %#x\r\n", ptMsg->ulData[1]);
 	  printf("接收到消息队列数据ptMsg->ulData[2] = %#x\r\n", ptMsg->ulData[2]);
 	  printf("接收到消息队列数据ptMsg->ulData[3] = %#x\r\n", ptMsg->ulData[3]);
@@ -276,7 +287,7 @@ static void vTaskLED1(void *pvParameters)
 	  printf("接收到消息队列数据ptMsg->ulData[5] = %#x\r\n", ptMsg->ulData[5]);
 	  printf("接收到消息队列数据ptMsg->ulData[6] = %#x\r\n", ptMsg->ulData[6]);
 	  printf("接收到消息队列数据ptMsg->ulData[7] = %#x\r\n", ptMsg->ulData[7]);
-      printf("接收到消息队列数据ptMsg->usData[3] = %#x\r\n", ptMsg->usData[3]);
+     printf("接收到消息队列数据ptMsg->usData[3] = %#x\r\n", ptMsg->usData[3]);
 			
 		
     }
@@ -351,7 +362,7 @@ static void AppTaskCreate (void)
 
     xTaskCreate( vTaskTaskUserIF,   	/* 任务函数  */
                  "vTaskUserIF",     	/* 任务名    */
-                 512,               	/* 任务栈大小，单位word，也就是4字节 */
+                1024,               	/* 任务栈大小，单位word，也就是4字节 */
                  NULL,              	/* 任务参数  */
                  1,                 	/* 任务优先级*/
                  &xHandleTaskUserIF );  /* 任务句柄  */

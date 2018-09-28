@@ -145,7 +145,7 @@ a statically allocated stack and a dynamically allocated TCB. */
 #define tskDELETED_CHAR		( 'D' )
 #define tskSUSPENDED_CHAR	( 'S' )
 
-volatile uint32_t ulHighFrequencyTimerTicks; //wt.edit
+volatile uint32_t ulHighFrequencyTimerTicks; //wt.edit 2018-09-28
 /*
  * Some kernel aware debuggers require the data the debugger needs access to be
  * global, rather than file scope.

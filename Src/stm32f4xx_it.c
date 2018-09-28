@@ -35,7 +35,7 @@
 #include "stm32f4xx.h"
 #include "stm32f4xx_it.h"
 #include "cmsis_os.h"
-
+#include "dma_usart3/bsp_usart3.h"
 /* USER CODE BEGIN 0 */
 #define ERR_INFO "\r\nEnter HardFault_Handler, System Halt.\r\n"
 
@@ -204,5 +204,18 @@ void TIM2_IRQHandler(void)
   //HAL_TIM_IRQHandler(&htim2);
   
 }
+#if 0
+/* USER CODE BEGIN 1 */
+void USARTx_DMAx_CHANNELn_IRQHANDLER(void)
+{
+  /* USER CODE BEGIN DMA2_Stream7_IRQn 0 */
+
+  /* USER CODE END DMA2_Stream7_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_usartx_tx);
+  /* USER CODE BEGIN DMA2_Stream7_IRQn 1 */
+
+  /* USER CODE END DMA2_Stream7_IRQn 1 */
+}
+#endif 
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
